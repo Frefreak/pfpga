@@ -37,6 +37,8 @@ private slots:
 
     void on_flash_nios_clicked();
 
+    void on_clearButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     void loadFilePath();
@@ -46,12 +48,14 @@ private:
     void insertTextHelper(QString s);
     void getSysInfo();
     bool parseSOPC();
+    void alert(QString s);
 
     QProcess *process;
 
     QString selected_sof;
     QString selected_elf;
     QString selected_sopc;
+
 };
 
 #define SOF "sof_file_path"
@@ -60,10 +64,12 @@ private:
 #define curDir "currentDirectory"
 
 #define SYSID "altera_avalon_sysid_qsys"
-#define NIOS2 "altera_nios2_qsys"
+#define NIOS2 "altera_nios2_gen2"
 #define NIOS2_DATAMASTER "dataSlaveMapParam"
 #define ID "embeddedsw.CMacro.ID"
 #define TIMESTAMP "embeddedsw.CMacro.TIMESTAMP"
+
+#define SCRIPT "/home/adv_zxy/bin/flash_my_board.sh"
 #define ORG "."
 
 #endif // MAINWINDOW_H

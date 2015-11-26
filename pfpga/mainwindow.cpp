@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QScrollBar>
 #include <QXmlStreamReader>
+#include <QMessageBox>
 //#include <KDE/KPtyProcess>
 
 
@@ -160,22 +161,25 @@ void MainWindow::getSysInfo()
                 if (reader.attributes().value("kind") == SYSID) {
                     sysid_name = reader.attributes().value("name").toString();
                     QString temp;
+                    int flag = 0;
 run_twice:          do {
                         reader.readNext();
                         temp = reader.name().toString();
-                    }  while (temp != "name");
+                    }  while (temp != "name" && flag != 2);
                     temp =  reader.readElementText();
                     if (temp == ID) {
                         do
                             reader.readNext();
                         while (reader.name() != "value");
                         sysid = reader.readElementText();
+                        flag++;
                         goto run_twice;
                     } else if (temp == TIMESTAMP) {
                         do
                             reader.readNext();
                         while (reader.name() != "value");
                         timestamp = reader.readElementText();
+                        flag++;
                         goto run_twice;
                     }
                 } else if (reader.attributes().value("kind") == NIOS2) {
@@ -211,33 +215,48 @@ run_twice:          do {
     }
 }
 
+void MainWindow::alert(QString s)
+{
+    QMessageBox messageBox;
+    messageBox.critical(0,"Error",s);
+    messageBox.setFixedSize(500,200);
+}
+
 void MainWindow::on_program_fpga_clicked()
 {
-    if (parseSOPC()) {
-        process->start("/home/adv_zxy/temp1.sh", QStringList() << selected_sof);
-    }
-    else
-        qDebug() << "error";
+    if (selected_sof.isEmpty())
+        alert("You must choose an sof file to program your FPGA! ");
+    process->start(SCRIPT, QStringList() << "1" << selected_sof);
 }
 
 void MainWindow::on_flash_fpga_clicked()
 {
-    if (parseSOPC()) {
-        process->start("/home/adv_zxy/temp2.sh", QStringList() << selected_sof);
-    }
-    else
-        qDebug() << "error";
-
+    if (selected_sof.isEmpty())
+        alert("You must choose an sof file to flash your FPGA! ");
+    process->start(SCRIPT, QStringList() << "2" << selected_sof);
 }
 
 void MainWindow::on_program_nios_clicked()
 {
-    process->start("/home/adv_zxy/temp3.sh");
+    if (parseSOPC())
+        process->start(SCRIPT, QStringList() << "3" << selected_sof
+                       << selected_elf << sysid << sysid_base << timestamp);
+    else
+        alert("Invalid SOPC info file! ");
 
 }
 
 void MainWindow::on_flash_nios_clicked()
 {
-    process->start("/home/adv_zxy/temp4.sh");
+    if (parseSOPC())
+        process->start(SCRIPT, QStringList() << "4" << selected_sof
+                       << selected_elf << sysid << sysid_base << timestamp);
+    else
+        alert("Invalid SOPC info file! ");
 
+}
+
+void MainWindow::on_clearButton_clicked()
+{
+    ui->stdout->clear();
 }
