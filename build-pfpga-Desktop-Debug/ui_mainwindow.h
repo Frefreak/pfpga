@@ -15,11 +15,14 @@
 #include <QtWidgets/QButtonGroup>
 #include <QtWidgets/QFormLayout>
 #include <QtWidgets/QFrame>
+#include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QHeaderView>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QPlainTextEdit>
+#include <QtWidgets/QPushButton>
 #include <QtWidgets/QToolButton>
 #include <QtWidgets/QWidget>
 
@@ -41,21 +44,31 @@ public:
     QToolButton *sofButton;
     QToolButton *elfButton;
     QToolButton *sopcButton;
-    QWidget *widget;
+    QWidget *layoutWidget;
     QHBoxLayout *horizontalLayout;
     QLabel *sopcLabel;
     QLineEdit *sopcLineEdit;
+    QPlainTextEdit *stdout;
+    QGroupBox *groupBox;
+    QPushButton *pushButton_2;
+    QPushButton *pushButton;
+    QGroupBox *groupBox_2;
+    QPushButton *flash_fpga;
+    QPushButton *program_fpga;
+    QGroupBox *groupBox_3;
+    QPushButton *flash_nios;
+    QPushButton *program_nios;
 
     void setupUi(QMainWindow *MainWindow)
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QStringLiteral("MainWindow"));
-        MainWindow->resize(504, 469);
+        MainWindow->resize(525, 600);
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         frame = new QFrame(centralWidget);
         frame->setObjectName(QStringLiteral("frame"));
-        frame->setGeometry(QRect(10, 40, 481, 161));
+        frame->setGeometry(QRect(20, 10, 481, 161));
         frame->setFrameShape(QFrame::StyledPanel);
         frame->setFrameShadow(QFrame::Raised);
         formLayoutWidget = new QWidget(frame);
@@ -103,24 +116,57 @@ public:
         sopcButton = new QToolButton(frame);
         sopcButton->setObjectName(QStringLiteral("sopcButton"));
         sopcButton->setGeometry(QRect(430, 100, 31, 31));
-        widget = new QWidget(frame);
-        widget->setObjectName(QStringLiteral("widget"));
-        widget->setGeometry(QRect(30, 100, 381, 33));
-        horizontalLayout = new QHBoxLayout(widget);
+        layoutWidget = new QWidget(frame);
+        layoutWidget->setObjectName(QStringLiteral("layoutWidget"));
+        layoutWidget->setGeometry(QRect(30, 100, 381, 33));
+        horizontalLayout = new QHBoxLayout(layoutWidget);
         horizontalLayout->setSpacing(6);
         horizontalLayout->setContentsMargins(11, 11, 11, 11);
         horizontalLayout->setObjectName(QStringLiteral("horizontalLayout"));
         horizontalLayout->setContentsMargins(0, 0, 0, 0);
-        sopcLabel = new QLabel(widget);
+        sopcLabel = new QLabel(layoutWidget);
         sopcLabel->setObjectName(QStringLiteral("sopcLabel"));
 
         horizontalLayout->addWidget(sopcLabel);
 
-        sopcLineEdit = new QLineEdit(widget);
+        sopcLineEdit = new QLineEdit(layoutWidget);
         sopcLineEdit->setObjectName(QStringLiteral("sopcLineEdit"));
 
         horizontalLayout->addWidget(sopcLineEdit);
 
+        stdout = new QPlainTextEdit(centralWidget);
+        stdout->setObjectName(QStringLiteral("stdout"));
+        stdout->setGeometry(QRect(20, 180, 481, 261));
+        QFont font;
+        font.setFamily(QStringLiteral("Fantasque Sans Mono"));
+        stdout->setFont(font);
+        groupBox = new QGroupBox(centralWidget);
+        groupBox->setObjectName(QStringLiteral("groupBox"));
+        groupBox->setGeometry(QRect(80, 450, 120, 131));
+        pushButton_2 = new QPushButton(groupBox);
+        pushButton_2->setObjectName(QStringLiteral("pushButton_2"));
+        pushButton_2->setGeometry(QRect(20, 80, 84, 33));
+        pushButton = new QPushButton(groupBox);
+        pushButton->setObjectName(QStringLiteral("pushButton"));
+        pushButton->setGeometry(QRect(20, 30, 84, 33));
+        groupBox_2 = new QGroupBox(groupBox);
+        groupBox_2->setObjectName(QStringLiteral("groupBox_2"));
+        groupBox_2->setGeometry(QRect(0, 0, 120, 131));
+        flash_fpga = new QPushButton(groupBox_2);
+        flash_fpga->setObjectName(QStringLiteral("flash_fpga"));
+        flash_fpga->setGeometry(QRect(20, 80, 84, 33));
+        program_fpga = new QPushButton(groupBox_2);
+        program_fpga->setObjectName(QStringLiteral("program_fpga"));
+        program_fpga->setGeometry(QRect(20, 30, 84, 33));
+        groupBox_3 = new QGroupBox(centralWidget);
+        groupBox_3->setObjectName(QStringLiteral("groupBox_3"));
+        groupBox_3->setGeometry(QRect(300, 450, 120, 131));
+        flash_nios = new QPushButton(groupBox_3);
+        flash_nios->setObjectName(QStringLiteral("flash_nios"));
+        flash_nios->setGeometry(QRect(20, 80, 84, 33));
+        program_nios = new QPushButton(groupBox_3);
+        program_nios->setObjectName(QStringLiteral("program_nios"));
+        program_nios->setGeometry(QRect(20, 30, 84, 33));
         MainWindow->setCentralWidget(centralWidget);
 
         retranslateUi(MainWindow);
@@ -137,6 +183,15 @@ public:
         elfButton->setText(QApplication::translate("MainWindow", "...", 0));
         sopcButton->setText(QApplication::translate("MainWindow", "...", 0));
         sopcLabel->setText(QApplication::translate("MainWindow", "sopc:", 0));
+        groupBox->setTitle(QApplication::translate("MainWindow", "FPGA", 0));
+        pushButton_2->setText(QApplication::translate("MainWindow", "Flash", 0));
+        pushButton->setText(QApplication::translate("MainWindow", "Program", 0));
+        groupBox_2->setTitle(QApplication::translate("MainWindow", "FPGA", 0));
+        flash_fpga->setText(QApplication::translate("MainWindow", "Flash", 0));
+        program_fpga->setText(QApplication::translate("MainWindow", "Program", 0));
+        groupBox_3->setTitle(QApplication::translate("MainWindow", "NIos II", 0));
+        flash_nios->setText(QApplication::translate("MainWindow", "Flash", 0));
+        program_nios->setText(QApplication::translate("MainWindow", "Program", 0));
     } // retranslateUi
 
 };

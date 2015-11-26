@@ -4,6 +4,9 @@
 #include <QSettings>
 #include <QDebug>
 #include <QFileDialog>
+#include <QScrollBar>
+#include <QXmlStreamReader>
+//#include <KDE/KPtyProcess>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -12,7 +15,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     loadFilePath();
-
+    process = new QProcess();
+    process->setProcessChannelMode(QProcess::MergedChannels);
+    QObject::connect(process, SIGNAL(readyReadStandardOutput()), this, SLOT(appendStdoutText()));
 }
 
 MainWindow::~MainWindow()
@@ -25,9 +30,12 @@ void MainWindow::loadFilePath()
 {
     QSettings *setting = new QSettings(ORG, qApp->applicationName());
     setting->beginGroup("FilePath");
-    ui->sofLineEdit->setText(setting->value(SOF, "").toString());
-    ui->elfLineEdit->setText(setting->value(ELF, "").toString());
-    ui->sopcLineEdit->setText(setting->value(SOPC, "").toString());
+    selected_sof = setting->value(SOF, "").toString();
+    selected_elf = setting->value(ELF, "").toString();
+    selected_sopc = setting->value(SOPC, "").toString();
+    ui->sofLineEdit->setText(selected_sof);
+    ui->elfLineEdit->setText(selected_elf);
+    ui->sopcLineEdit->setText(selected_sopc);
     setting->endGroup();
 }
 
@@ -61,12 +69,13 @@ void MainWindow::on_sofButton_clicked()
 {
     QString path = getCurrentDir();
     path = QFileDialog::getOpenFileName(NULL, "Open SOF File",
-                                                path, "sof files (*.sof)");
+                                                path, "sof file (*.sof)");
     if (!path.isEmpty())
         if (path.right(4) == ".sof") {
             ui->sofLineEdit->setText(path);
             saveFilePath(SOF, path);
             saveCurrentDir(path);
+            selected_sof = path;
         }
 }
 
@@ -74,12 +83,13 @@ void MainWindow::on_elfButton_clicked()
 {
     QString path = getCurrentDir();
     path = QFileDialog::getOpenFileName(NULL, "Open ELF File",
-                                                path, "elf files (*.elf)");
+                                                path, "elf file (*.elf)");
     if (!path.isEmpty())
         if (path.right(4) == ".elf") {
             ui->elfLineEdit->setText(path);
             saveFilePath(ELF, path);
             saveCurrentDir(path);
+            selected_elf = path;
         }
 }
 
@@ -87,11 +97,147 @@ void MainWindow::on_sopcButton_clicked()
 {
     QString path = getCurrentDir();
     path = QFileDialog::getOpenFileName(NULL, "Open SOPC File",
-                                                path, "sopc files (*.sopcinfo)");
+                                                path, "sopc file (*.sopcinfo)");
     if (!path.isEmpty())
-        if (path.right(5) == ".sopc") {
+        if (path.right(9) == ".sopcinfo") {
             ui->sopcLineEdit->setText(path);
             saveFilePath(SOPC, path);
             saveCurrentDir(path);
+            selected_sopc = path;
         }
+}
+
+
+void MainWindow::insertTextHelper(QString s)
+{
+    QPlainTextEdit *widget = ui->stdout;
+    const QTextCursor old_cursor = widget->textCursor();
+    const int old_scrollbar_value = widget->verticalScrollBar()->value();
+    const bool is_scrolled_down = old_scrollbar_value == widget->verticalScrollBar()->maximum();
+
+    widget->moveCursor(QTextCursor::End);
+    widget->textCursor().insertText(s);
+    widget->setTextCursor(old_cursor);
+
+    if (!is_scrolled_down)
+        widget->verticalScrollBar()->setValue(old_scrollbar_value);
+    else
+        widget->verticalScrollBar()->setValue(widget->verticalScrollBar()->maximum());
+
+}
+
+void MainWindow::appendStdoutText()
+{
+    insertTextHelper(QString(process->readAllStandardOutput()));
+}
+
+bool MainWindow::parseSOPC()
+{
+    getSysInfo();
+    if (sysid.isEmpty() ||
+            sysid_base.isEmpty() ||
+            timestamp.isEmpty())
+        return false;
+    return true;
+}
+
+/* Scan file. Get System id name, System id and timestamp */
+void MainWindow::getSysInfo()
+{
+    QSettings *setting = new QSettings(ORG, qApp->applicationName());
+    setting->beginGroup("FilePath");
+    QFile sopcFile(setting->value(SOPC).toString());
+    sopcFile.open(QIODevice::ReadOnly);
+    QXmlStreamReader reader(&sopcFile);
+    setting->endGroup();
+
+    QString cdata;
+    QString sysid_name;
+    reader.readNext();
+    while (!reader.isEndDocument()) {
+        if (reader.isStartElement())
+            if (reader.name() == "module") {
+                if (reader.attributes().value("kind") == SYSID) {
+                    sysid_name = reader.attributes().value("name").toString();
+                    QString temp;
+run_twice:          do {
+                        reader.readNext();
+                        temp = reader.name().toString();
+                    }  while (temp != "name");
+                    temp =  reader.readElementText();
+                    if (temp == ID) {
+                        do
+                            reader.readNext();
+                        while (reader.name() != "value");
+                        sysid = reader.readElementText();
+                        goto run_twice;
+                    } else if (temp == TIMESTAMP) {
+                        do
+                            reader.readNext();
+                        while (reader.name() != "value");
+                        timestamp = reader.readElementText();
+                        goto run_twice;
+                    }
+                } else if (reader.attributes().value("kind") == NIOS2) {
+                    do
+                        reader.readNext();
+                    while (reader.attributes().value("name") != NIOS2_DATAMASTER);
+                    do
+                        reader.readNext();
+                    while (!reader.isCDATA());
+                    cdata =  reader.text().toString();
+                }
+            } else if (reader.name() == "EnsembleReport") {
+                ;	// don't skip top level element
+            } else
+                reader.skipCurrentElement();	// skip unrelevent elements
+        reader.readNext();
+    }
+
+    sysid.setNum(sysid.toUInt(NULL, 10), 16);
+    sysid = "0x" + sysid;
+    sopcFile.close();
+
+    /* Scan CDATA. Get sysid base addr */
+    reader.clear();
+    reader.addData(cdata);
+
+    while (!reader.isEndDocument()) {
+        if (reader.name() == "slave" && reader.attributes().value("name") == sysid_name + ".control_slave") {
+            sysid_base = reader.attributes().value("start").toString();
+            break;
+        }
+        reader.readNext();
+    }
+}
+
+void MainWindow::on_program_fpga_clicked()
+{
+    if (parseSOPC()) {
+        process->start("/home/adv_zxy/temp1.sh", QStringList() << selected_sof);
+    }
+    else
+        qDebug() << "error";
+}
+
+void MainWindow::on_flash_fpga_clicked()
+{
+    if (parseSOPC()) {
+        process->start("/home/adv_zxy/temp2.sh", QStringList() << selected_sof);
+    }
+    else
+        qDebug() << "error";
+
+}
+
+void MainWindow::on_program_nios_clicked()
+{
+    process->start("/home/adv_zxy/temp3.sh");
+
+}
+
+void MainWindow::on_flash_nios_clicked()
+{
+    process->start("/home/adv_zxy/temp4.sh");
+
 }
