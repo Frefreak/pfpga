@@ -134,6 +134,9 @@ void MainWindow::appendStdoutText()
 
 bool MainWindow::parseSOPC()
 {
+    sysid = "";
+    sysid_base = "";
+    timestamp = "";
     getSysInfo();
     if (sysid.isEmpty() ||
             sysid_base.isEmpty() ||
@@ -165,30 +168,32 @@ void MainWindow::getSysInfo()
 run_twice:          do {
                         reader.readNext();
                         temp = reader.name().toString();
-                    }  while (temp != "name" && flag != 2);
+                    }  while (temp != "name" && flag != 2 && !reader.atEnd());
                     temp =  reader.readElementText();
                     if (temp == ID) {
                         do
                             reader.readNext();
-                        while (reader.name() != "value");
+                        while (reader.name() != "value" && !reader.atEnd());
                         sysid = reader.readElementText();
                         flag++;
                         goto run_twice;
                     } else if (temp == TIMESTAMP) {
                         do
                             reader.readNext();
-                        while (reader.name() != "value");
+                        while (reader.name() != "value" && !reader.atEnd());
                         timestamp = reader.readElementText();
                         flag++;
                         goto run_twice;
                     }
-                } else if (reader.attributes().value("kind") == NIOS2) {
+                } else if (reader.attributes().value("kind") == NIOS1 ||
+                           reader.attributes().value("kind") == NIOS2) {
                     do
                         reader.readNext();
-                    while (reader.attributes().value("name") != NIOS2_DATAMASTER);
+                    while (reader.attributes().value("name") != NIOS_DATAMASTER &&
+                           !reader.atEnd());
                     do
                         reader.readNext();
-                    while (!reader.isCDATA());
+                    while (!reader.isCDATA() && !reader.atEnd());
                     cdata =  reader.text().toString();
                 }
             } else if (reader.name() == "EnsembleReport") {
@@ -204,6 +209,8 @@ run_twice:          do {
 
     /* Scan CDATA. Get sysid base addr */
     reader.clear();
+    if (cdata.isEmpty())
+        return;
     reader.addData(cdata);
 
     while (!reader.isEndDocument()) {
@@ -238,9 +245,10 @@ void MainWindow::on_flash_fpga_clicked()
 
 void MainWindow::on_program_nios_clicked()
 {
-    if (parseSOPC())
+    if (parseSOPC()) {
         process->start(SCRIPT, QStringList() << "3" << selected_sof
                        << selected_elf << sysid << sysid_base << timestamp);
+    }
     else
         alert("Invalid SOPC info file! ");
 

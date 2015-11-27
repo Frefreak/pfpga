@@ -64,8 +64,9 @@ private:
 #define curDir "currentDirectory"
 
 #define SYSID "altera_avalon_sysid_qsys"
+#define NIOS1 "altera_nios2_qsys"
 #define NIOS2 "altera_nios2_gen2"
-#define NIOS2_DATAMASTER "dataSlaveMapParam"
+#define NIOS_DATAMASTER "dataSlaveMapParam"
 #define ID "embeddedsw.CMacro.ID"
 #define TIMESTAMP "embeddedsw.CMacro.TIMESTAMP"
 
